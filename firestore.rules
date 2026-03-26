@@ -1,0 +1,60 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {userId} (matches Firebase Auth UID)
+    // Fields:
+    //   - name: string (required, length < 100)
+    //   - email: string (required, valid email)
+    //   - nim: string (required, length < 50)
+    //   - prodi: string (required, length < 100)
+    //   - fakultas: string (required, length < 100)
+    //   - universitas: string (required, length < 100)
+    //   - tahun: string (required, length < 10)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidUser(data) {
+      return hasOnlyAllowedFields(['name', 'email', 'nim', 'prodi', 'fakultas', 'universitas', 'tahun']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.email is string && isValidEmail(data.email) &&
+             data.nim is string && data.nim.size() > 0 && data.nim.size() < 50 &&
+             data.prodi is string && data.prodi.size() > 0 && data.prodi.size() < 100 &&
+             data.fakultas is string && data.fakultas.size() > 0 && data.fakultas.size() < 100 &&
+             data.universitas is string && data.universitas.size() > 0 && data.universitas.size() < 100 &&
+             data.tahun is string && data.tahun.size() > 0 && data.tahun.size() < 10;
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if isOwner(userId) && isValidUser(request.resource.data);
+      allow delete: if isOwner(userId);
+    }
+  }
+}

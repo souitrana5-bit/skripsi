@@ -1,0 +1,5 @@
+{
+  "name": "SkripsiAI",
+  "description": "Generator Skripsi Otomatis menggunakan Google AI (Gemini)",
+  "requestFramePermissions": []
+}
